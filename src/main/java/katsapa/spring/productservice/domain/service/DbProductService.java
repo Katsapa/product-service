@@ -28,6 +28,7 @@ public class DbProductService implements ProductService {
                 .build();
         return productRepository.save(product);
     }
+
     public ProductEntity update(Long id, ProductUpdateRequest updateRequest){
         log.info("Updating product in DB: {}", id);
         ProductEntity product = productRepository.findById(id)
