@@ -5,15 +5,27 @@ import katsapa.spring.productservice.api.ProductUpdateRequest;
 import katsapa.spring.productservice.domain.ProductService;
 import katsapa.spring.productservice.domain.db.ProductEntity;
 import katsapa.spring.productservice.domain.db.ProductRepository;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
+
+import javax.print.DocFlavor;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
-public class DbProductService implements ProductService {
+@AllArgsConstructor
+public class ManualCachingProductService implements ProductService {
     private final ProductRepository productRepository;
+    private final RedisTemplate<String, ProductEntity> redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    private static final String CACHE_KEY_PREFIX = "product:";
+    private static final long CACHE_TTL_MINUTES= 1;
+
 
     @Override
     public ProductEntity create(ProductCreateRequest createRequest){
@@ -28,7 +40,7 @@ public class DbProductService implements ProductService {
     }
 
     public ProductEntity update(Long id, ProductUpdateRequest updateRequest){
-        log.info("Updating product in DB: {}", id);
+
         ProductEntity product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + id));
 
@@ -39,12 +51,34 @@ public class DbProductService implements ProductService {
         if(updateRequest.description() != null){
             product.setDescription(updateRequest.description());
         }
-        return productRepository.save(product);
+
+        log.info("Updating product in DB: {}", id);
+        var savedProduct = productRepository.save(product);
+
+        var cacheKey = CACHE_KEY_PREFIX + id;
+        redisTemplate.delete(cacheKey);
+        //redisTemplate.opsForValue().set(cacheKey, savedProduct);
+        return savedProduct;
     }
+
     public ProductEntity getById(Long id){
-        log.info("Getting product from DB: id={}", id);
-        return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found: " + id));
+        log.info("Getting product: id={}", id);
+        var cacheKey = CACHE_KEY_PREFIX + id;
+
+        ProductEntity entityFromCache = redisTemplate.opsForValue().get("product:" + id);
+
+        if(entityFromCache != null){
+            return entityFromCache;
+        }
+        log.info("Product doesnt find in cache: if={}", id);
+        ProductEntity entityForBd = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found in BD: " + id));
+
+        redisTemplate.opsForValue()
+                .set(cacheKey, entityForBd, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        log.info("Product was add in cache: id={}", id);
+
+        return entityForBd;
     }
 
     public void delete(Long id){
@@ -52,6 +86,11 @@ public class DbProductService implements ProductService {
         if(!productRepository.existsById(id)){
             throw new RuntimeException("Product not found: " + id);
         }
+        String cacheKey = "product:" + id;
+
         productRepository.deleteById(id);
+
+        redisTemplate.delete(cacheKey);
+        log.info("Cache invalidated for deleted product: id={}", id);
     }
 }

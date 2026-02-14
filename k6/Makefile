@@ -1,5 +1,3 @@
-# Makefile для запуска k6 нагрузочных тестов
-
 BASE_URL ?= http://localhost:8080
 CACHE_MODE ?= MANUAL
 
