@@ -1,42 +1,58 @@
 package katsapa.spring.productservice.api;
 
+import katsapa.spring.productservice.domain.CacheMode;
+import katsapa.spring.productservice.domain.ProductService;
 import katsapa.spring.productservice.domain.db.ProductEntity;
 import katsapa.spring.productservice.domain.service.DbProductService;
+import katsapa.spring.productservice.domain.service.ManualCachingProductService;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
+
 @Slf4j
 @RestController
+@AllArgsConstructor
 @RequestMapping("/api/products")
 public class ProductController {
+
     private final DbProductService dbProductService;
     private final ProductDtoMapper mapper;
-
-
-    public ProductController(DbProductService dbProductService, ProductDtoMapper mapper) {
-        this.dbProductService = dbProductService;
-        this.mapper = mapper;
-    }
+    private final ManualCachingProductService cachingProductService;
 
     @PostMapping
     public ResponseEntity<ProductDto> create(
-        @RequestBody ProductCreateRequest request
+        @RequestBody ProductCreateRequest request,
+        @RequestParam(value = "CacheMode", defaultValue = "NONE_CACHE") CacheMode cacheMode
     ){
-        log.info("Creating product with cacheMode={}", "non");
-        ProductEntity product = dbProductService.create(request);
+        ProductService productService = resolveProductService(cacheMode);
+        log.info("Creating product with cacheMode={}", cacheMode);
+
+        ProductEntity product = productService.create(request);
         ProductDto dto = mapper.toProductDto(product);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
+    private ProductService resolveProductService(CacheMode cacheMode) {
+        return switch (cacheMode){
+            case NONE_CACHE -> dbProductService;
+            case MANUAL -> cachingProductService;
+        };
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProductDto> getById(
-            @PathVariable Long id
+            @PathVariable Long id,
+            @RequestParam(value = "CacheMode", defaultValue = "NONE_CACHE") CacheMode cacheMode
     ){
-        log.info("Getting product {} with cacheMode={}", id, "non");
-        ProductEntity productEntity = dbProductService.getById(id);
+        log.info("Getting product {} with cacheMode={}", id, cacheMode);
+        ProductService productService = resolveProductService(cacheMode);
+
+        ProductEntity productEntity = productService.getById(id);
         ProductDto product = mapper.toProductDto(productEntity);
         return  ResponseEntity.ok(product);
     }
@@ -44,10 +60,13 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductDto> update(
             @PathVariable Long id,
-            @RequestBody ProductUpdateRequest request
+            @RequestBody ProductUpdateRequest request,
+            @RequestParam(value = "CacheMode", defaultValue = "NONE_CACHE") CacheMode cacheMode
     ){
-        log.info("Updating product {} with cacheMode={}", id, "non");
-        ProductEntity entity = dbProductService.update(id, request);
+        log.info("Updating product {} with cacheMode={}", id, cacheMode);
+        ProductService productService = resolveProductService(cacheMode);
+
+        ProductEntity entity = productService.update(id, request);
         ProductDto dto = mapper.toProductDto(entity);
 
         return  ResponseEntity.ok(dto);
@@ -55,11 +74,13 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @PathVariable Long id
+            @PathVariable Long id,
+            @RequestParam(value = "CacheMode", defaultValue = "NONE_CACHE") CacheMode cacheMode
     ){
-        log.info("Deleting product {} with cacheMode={}", id, "non");
+        log.info("Deleting product {} with cacheMode={}", id, cacheMode);
+        ProductService productService = resolveProductService(cacheMode);
 
-        dbProductService.delete(id);
+        productService.delete(id);
 
         return ResponseEntity.noContent().build();
     }
