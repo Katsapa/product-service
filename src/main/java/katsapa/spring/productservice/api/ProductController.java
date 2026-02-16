@@ -5,6 +5,7 @@ import katsapa.spring.productservice.domain.ProductService;
 import katsapa.spring.productservice.domain.db.ProductEntity;
 import katsapa.spring.productservice.domain.service.DbProductService;
 import katsapa.spring.productservice.domain.service.ManualCachingProductService;
+import katsapa.spring.productservice.domain.service.SpringAnnotationChachingProductService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,8 @@ public class ProductController {
     private final DbProductService dbProductService;
     private final ProductDtoMapper mapper;
     private final ManualCachingProductService cachingProductService;
+    private final SpringAnnotationChachingProductService springAnnotationChachingProductService;
+
 
     @PostMapping
     public ResponseEntity<ProductDto> create(
@@ -35,13 +38,6 @@ public class ProductController {
         ProductDto dto = mapper.toProductDto(product);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
-    }
-
-    private ProductService resolveProductService(CacheMode cacheMode) {
-        return switch (cacheMode){
-            case NONE_CACHE -> dbProductService;
-            case MANUAL -> cachingProductService;
-        };
     }
 
     @GetMapping("/{id}")
@@ -83,5 +79,13 @@ public class ProductController {
         productService.delete(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    private ProductService resolveProductService(CacheMode cacheMode) {
+        return switch (cacheMode){
+            case NONE_CACHE -> dbProductService;
+            case MANUAL -> cachingProductService;
+            case SPRING -> springAnnotationChachingProductService;
+        };
     }
 }
