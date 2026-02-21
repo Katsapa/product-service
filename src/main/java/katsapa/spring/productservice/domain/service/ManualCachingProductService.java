@@ -8,11 +8,9 @@ import katsapa.spring.productservice.domain.db.ProductRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
-import javax.print.DocFlavor;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
