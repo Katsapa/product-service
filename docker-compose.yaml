@@ -1,0 +1,8 @@
+services:
+  redis-base-course:
+    image: redis-base-course:latest
+    build: .
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file: .env
