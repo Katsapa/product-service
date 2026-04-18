@@ -1,5 +1,6 @@
 package katsapa.spring.productservice.domain.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import katsapa.spring.productservice.api.ProductCreateRequest;
 import katsapa.spring.productservice.api.ProductUpdateRequest;
 import katsapa.spring.productservice.domain.ProductService;
@@ -9,7 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.ObjectMapper;
+
 
 import java.util.concurrent.TimeUnit;
 

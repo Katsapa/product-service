@@ -50,4 +50,5 @@ public class ProductEntity {
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
+    
 }
