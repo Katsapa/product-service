@@ -12,7 +12,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Optional;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -37,7 +36,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
         boolean allow = fixedWindowRateLimiter.allowRequest(
                 client,
-                10,
+                100,
                 Duration.ofMinutes(1)
         );
         if(!allow){
@@ -45,5 +44,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
             response.getWriter().write("Rate limiter exceeded");
             return;
         }
+        filterChain.doFilter(request, response);
     }
 }
